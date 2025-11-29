@@ -1,0 +1,492 @@
+#include <iostream>
+#include <cassert>
+#include <vector>
+#include <chrono>
+using namespace std;
+
+typedef struct {
+    string nome_acao;
+    string nome_empresa;
+    int cotacao_atual = 0;
+} MercadoAcoes;
+
+typedef struct {
+    string nome_acao;
+    string nome_empresa; 
+    int quantidade = 0;
+    int total_investido_na_acao = 0;
+    int patrimonio = 0;
+    int balanco_da_acao = 0;
+} CarteiraCliente;
+
+void mostrar_menu ();
+void compra_acao (vector<MercadoAcoes> &acoes_disponiveis, vector <CarteiraCliente> &acoes_carteira);
+int buscar_dados_acao (vector<MercadoAcoes> acoes_a_comparar, string acao_a_buscar);
+void troca_nomes (string *posicao_menor, string *posicao_colocar_menor);
+void ordenar_vetor_nomes_selection (vector <string> &vetor_nomes_ordenar);
+int busca_binaria_para_acao_carteira (string acao_a_procurar, vector <CarteiraCliente> &acoes_a_rastrear);
+void venda_acao (vector<MercadoAcoes> &acoes_disponiveis, vector <CarteiraCliente> &acoes_carteira);
+void mostrar_mercado (vector<MercadoAcoes> acoes_a_mostrar);
+void mostrar_carteira (vector <CarteiraCliente> acoes_carteira);
+void bubble_sort_recursivo (vector <int> &ordenar_acoes_mostrar, int tamanho);
+void troca_numeros (int *numero_anterior_maior, int *numero_posterior_menor);
+void imposto_a_ser_pago (vector <CarteiraCliente> acoes_carteira);
+void variacao_mercado (vector<MercadoAcoes> &acoes_a_variar);
+void calculo_balanco (vector<MercadoAcoes> acoes_a_variar, vector <CarteiraCliente> &acoes_carteira);
+void casos_teste ();
+void teste_tempo_execucao_ordenacao (vector <string> &vetor_a_ordenar);
+
+int main(){
+    vector<MercadoAcoes> acoes_disponiveis = {
+        {"PETR4", "Petrobras", 30},
+        {"BBAS3", "Banco do Brasil", 20},
+        {"ELET3", "Eletrobras", 40},
+        {"ITUB4", "Itaú", 38},
+        {"CYRE3", "Cyrela", 33}
+    };
+    
+    vector <CarteiraCliente> acoes_carteira;
+    vector <string> teste_execucao = {"PETR4", "CYRE3", "BBAS3", "ITUB4", "ELET3"};
+    int dias = 0, opcao = 0, encerrar_dia = 0, i = 0;
+    
+    cout << "Quantos dias você quer simular? ";
+    cin >> dias;
+    cout << endl;
+    
+    for (i = 0; i < dias; i++){
+        if (i != 0){
+            variacao_mercado(acoes_disponiveis);
+            calculo_balanco (acoes_disponiveis, acoes_carteira);
+        }
+        while (encerrar_dia != 1){
+            mostrar_menu();
+            cin >> opcao;
+            cout << endl;
+            
+            switch (opcao){
+                case 1:
+                    compra_acao (acoes_disponiveis, acoes_carteira);
+                    break;
+                
+                case 2: 
+                    venda_acao (acoes_disponiveis, acoes_carteira);
+                    break;
+                
+                case 3:
+                    mostrar_mercado (acoes_disponiveis);
+                    break;
+                
+                case 4:
+                    mostrar_carteira (acoes_carteira);
+                    break;    
+                
+                case 5: 
+                    imposto_a_ser_pago (acoes_carteira);
+                    break;  
+                
+                case 6:
+                    casos_teste ();
+                    teste_tempo_execucao_ordenacao (teste_execucao); 
+                    break;
+		
+		        default:
+		            cout << "O valor inserido não é válido!" << endl;
+		            break;
+            }
+            
+            cout << "Você quer encerrar o dia? Caso queira digite '1'" << endl;
+            cin >> encerrar_dia;
+            cout << endl;
+        }
+        encerrar_dia = 0;
+    }
+    
+    return 0;
+}
+
+void mostrar_menu (){
+    cout << "Bem vindo ao simulador de mercado de ações!" << endl;
+    cout << "O que deseja fazer?" << endl;
+    cout << "Digite '1' para comprar ações." << endl;
+    cout << "Digite '2' para vender ações." << endl;
+    cout << "Digite '3' para ver as ações disponíveis no mercado." << endl;
+    cout << "Digite '4' para ver sua carteira." << endl;
+    cout << "Digite '5' para calcular o imposto de renda a ser pago." << endl;
+    cout << "Digite '6' para realizar casos de teste." << endl;
+    cout << "Ação a ser feita: ";
+}
+
+void mostrar_mercado (vector<MercadoAcoes> acoes_a_mostrar){
+    int i = 0;
+    
+    for (i = 0; i < acoes_a_mostrar.size(); i++){
+        cout << "A ação " << acoes_a_mostrar[i].nome_acao << " pertence a empresa " << acoes_a_mostrar[i].nome_empresa 
+        << " e possui o valor de " << acoes_a_mostrar[i].cotacao_atual << " reais" << endl;    
+    }
+}
+
+void troca_numeros (int *numero_anterior_maior, int *numero_posterior_menor){
+    int auxiliar = 0;
+
+    auxiliar = *numero_anterior_maior;
+    *numero_anterior_maior = *numero_posterior_menor;
+    *numero_posterior_menor = auxiliar;
+}
+
+void bubble_sort_recursivo (vector <int> &ordenar_acoes_mostrar, int tamanho){
+    int i = 0;
+    
+    if (tamanho > 1){
+        for (i = 0; i < tamanho - 1; i++){
+            if (ordenar_acoes_mostrar [i] > ordenar_acoes_mostrar [i + 1]){
+                troca_numeros (&ordenar_acoes_mostrar [i], &ordenar_acoes_mostrar [i + 1]);
+            }
+        }
+        bubble_sort_recursivo (ordenar_acoes_mostrar, tamanho - 1);
+    }
+}
+
+void mostrar_carteira (vector <CarteiraCliente> acoes_carteira){
+    vector <int> ordenar_acoes_mostrar;
+    int tipo_ordenacao = 0, i = 0, tamanho_vetor = 0, varredura_carteira = 0;
+    
+    if (acoes_carteira.size() == 0){
+        cout << "Sua carteira está vazia!" << endl;
+    } else {
+        do {
+            cout << "Se quer ordenar sua carteira pela quantidade de cotas, digite '1'. E se quer ordenar pelo total investido, digite '2'." 
+            << endl;
+            cin >> tipo_ordenacao;
+        } while (tipo_ordenacao != 1 && tipo_ordenacao != 2);
+            
+        if (tipo_ordenacao == 1){
+            for (i = 0; i < acoes_carteira.size (); i++){
+            ordenar_acoes_mostrar.push_back (acoes_carteira[i].quantidade);
+            }
+        } else {
+            for (i = 0; i < acoes_carteira.size (); i++){
+            ordenar_acoes_mostrar.push_back (acoes_carteira[i].total_investido_na_acao);
+            }
+        }
+        tamanho_vetor = ordenar_acoes_mostrar.size();
+        bubble_sort_recursivo (ordenar_acoes_mostrar, tamanho_vetor);
+        
+        i = 0;
+    
+        if (tipo_ordenacao == 1){
+            for (i = 0; i < ordenar_acoes_mostrar.size(); i++){
+                while (ordenar_acoes_mostrar [i] != acoes_carteira[varredura_carteira].quantidade){
+                    varredura_carteira++;    
+                };
+                cout << "Você possui " << acoes_carteira[varredura_carteira].quantidade << " cotas da ação " <<
+                acoes_carteira[varredura_carteira].nome_acao << " da empresa " << acoes_carteira[varredura_carteira].nome_empresa << "." << endl; 
+                cout << "No total, você investiu " << acoes_carteira[varredura_carteira].total_investido_na_acao << " reais nessa ação. " << endl;
+                cout << "Seu patrimônio nessa ação é de: " << acoes_carteira[varredura_carteira].patrimonio << " reais." << endl;
+                cout << "O balanço da ação é: " << acoes_carteira[varredura_carteira].balanco_da_acao << " reais." << endl << endl;
+                if (acoes_carteira[varredura_carteira].quantidade != acoes_carteira[varredura_carteira + 1].quantidade){
+                   varredura_carteira = 0; 
+                } else {
+                    varredura_carteira++;
+                }
+            }    
+        } else {
+            for (i = 0; i < ordenar_acoes_mostrar.size(); i++){
+                while (ordenar_acoes_mostrar [i] != acoes_carteira[varredura_carteira].total_investido_na_acao){
+                    varredura_carteira++;    
+                };
+                cout << "Você possui " << acoes_carteira[varredura_carteira].total_investido_na_acao << " cotas da ação " <<
+                acoes_carteira[varredura_carteira].nome_acao << " da empresa " << acoes_carteira[varredura_carteira].nome_empresa << "." << endl; 
+                cout << "No total, você investiu " << acoes_carteira[varredura_carteira].total_investido_na_acao << " reais nessa ação. " << endl;
+                cout << "Seu patrimônio nessa ação é de: " << acoes_carteira[varredura_carteira].patrimonio << " reais." << endl;
+                cout << "O balanço da ação é: " << acoes_carteira[varredura_carteira].balanco_da_acao << " reais." << endl << endl;
+                if (acoes_carteira[varredura_carteira].total_investido_na_acao != acoes_carteira[varredura_carteira + 1].total_investido_na_acao){
+                   varredura_carteira = 0; 
+                } else {
+                    varredura_carteira++;
+                }
+            }      
+        }
+    }
+}
+
+int buscar_dados_acao (vector<MercadoAcoes> acoes_a_comparar, string acao_a_buscar){
+    MercadoAcoes *ponteiro = acoes_a_comparar.data(), *ponteiro_limite = ponteiro + acoes_a_comparar.size();
+    int indice = 0;
+    
+    while (ponteiro < ponteiro_limite){
+        if (ponteiro->nome_acao == acao_a_buscar){
+            return indice;
+        }
+        ponteiro++;
+        indice++;
+    }
+
+    return -1;
+}
+
+void troca_nomes (string *posicao_menor, string *posicao_colocar_menor){
+    string auxiliar;
+    auxiliar = *posicao_colocar_menor;
+    *posicao_colocar_menor = *posicao_menor;
+    *posicao_menor = auxiliar;
+}
+
+void ordenar_vetor_nomes_selection (vector <string> &vetor_nomes_ordenar){
+    int i = 0, j = 0, contador_caracteres = 0, primeira_palavra_indice = 0;
+    string primeira_palavra, elemento_a_comparar;
+    
+    for (i = 0; i < (vetor_nomes_ordenar.size() - 1); i++){
+        primeira_palavra = vetor_nomes_ordenar[i];
+        primeira_palavra_indice = i;
+        
+        for (j = i + 1; j < vetor_nomes_ordenar.size(); j++){
+            elemento_a_comparar = vetor_nomes_ordenar[j];
+            
+            while (primeira_palavra [contador_caracteres] != '\0'){
+                if (elemento_a_comparar [contador_caracteres] < primeira_palavra [contador_caracteres]){
+                    primeira_palavra = elemento_a_comparar;
+                    primeira_palavra_indice = j;
+                    break;
+                }
+                if (elemento_a_comparar [contador_caracteres] > primeira_palavra [contador_caracteres]){
+                    break;
+                }
+                contador_caracteres++;
+            }
+            contador_caracteres = 0;
+        }
+        
+        if (vetor_nomes_ordenar [primeira_palavra_indice] != vetor_nomes_ordenar [i]){
+            troca_nomes (&vetor_nomes_ordenar [primeira_palavra_indice], &vetor_nomes_ordenar [i]);
+        }
+    }
+}
+
+int busca_binaria_para_acao_carteira (string acao_a_procurar, vector <CarteiraCliente> &acoes_a_rastrear){
+    vector <string> nomes_acoes;
+    int i = 0, inicio = 0, fim = 0, meio = 0, indice_original = 0;
+
+    for (i = 0; i < acoes_a_rastrear.size (); i++){
+        nomes_acoes.push_back (acoes_a_rastrear[i].nome_acao);
+    }
+    
+    ordenar_vetor_nomes_selection (nomes_acoes);
+    fim = nomes_acoes.size() - 1;
+
+    while (inicio <= fim){
+        meio = (inicio + fim) / 2;
+
+        if (nomes_acoes [meio] == acao_a_procurar){
+            for (indice_original = 0; indice_original < acoes_a_rastrear.size(); indice_original++){
+                if (acoes_a_rastrear[indice_original].nome_acao == acao_a_procurar){
+                    return indice_original;
+                } 
+            }
+	    return -1;
+        } 
+        if (nomes_acoes [meio] < acao_a_procurar){
+            inicio = meio + 1;
+        } else{
+            fim = meio - 1; 
+        }
+    }
+    return -1;
+}
+
+void compra_acao (vector<MercadoAcoes> &acoes_disponiveis, vector <CarteiraCliente> &acoes_carteira){
+    string acao_a_comprar, empresa_da_acao;
+    int numero_cotas = 0, valor_cota = 0, indice_acao = 0, continuar_compra = 1;
+    bool acao_valida = 0;
+    
+    while (continuar_compra != 0){
+        while (acao_valida == 0){
+	    mostrar_mercado (acoes_disponiveis);
+            cout << endl << "Digite o nome da ação que quer comprar: ";
+            cin >> acao_a_comprar;
+            cout << endl;
+            indice_acao = buscar_dados_acao (acoes_disponiveis, acao_a_comprar);
+            if (indice_acao != -1){
+                acao_valida = 1;
+            }
+        }
+        acao_valida = 0;
+        
+        valor_cota = acoes_disponiveis[indice_acao].cotacao_atual;
+        cout << "O valor da cota é: " << valor_cota << endl;
+        
+        cout << "Quantas cotas quer comprar? ";
+        cin >> numero_cotas;
+        cout << endl;
+        
+        empresa_da_acao = acoes_disponiveis[indice_acao].nome_empresa;
+    
+    	if (acoes_carteira.size() == 0){
+    	    acoes_carteira.push_back ({acao_a_comprar, empresa_da_acao, numero_cotas, valor_cota * numero_cotas, valor_cota * numero_cotas});
+    	} else if (acoes_carteira.size() > 0 && acoes_carteira.size() < acoes_disponiveis.size()){
+    	     indice_acao = busca_binaria_para_acao_carteira (acao_a_comprar, acoes_carteira);
+    	     
+    	     if (indice_acao == -1){
+    	         acoes_carteira.push_back ({acao_a_comprar, empresa_da_acao, numero_cotas, valor_cota * numero_cotas, valor_cota * numero_cotas});
+    	     } else {
+      	         acoes_carteira[indice_acao].quantidade += numero_cotas;
+    	         acoes_carteira[indice_acao].total_investido_na_acao += (valor_cota * numero_cotas);
+    	         acoes_carteira[indice_acao].patrimonio += (valor_cota * numero_cotas);
+    	     }   
+    	} else {
+    	    indice_acao = busca_binaria_para_acao_carteira (acao_a_comprar, acoes_carteira);
+    	    acoes_carteira[indice_acao].quantidade += numero_cotas;
+    	    acoes_carteira[indice_acao].total_investido_na_acao += (valor_cota * numero_cotas);
+    	    acoes_carteira[indice_acao].patrimonio += (valor_cota * numero_cotas);
+    	}
+        
+        cout << "Quer continuar comprando? Digite '0' para encerrar." << endl;
+        cin >> continuar_compra;
+        cout << endl;    
+    }
+}
+
+void venda_acao (vector<MercadoAcoes> &acoes_disponiveis, vector <CarteiraCliente> &acoes_carteira){
+    string acao_a_vender, empresa_da_acao;
+    int numero_cotas = 0, valor_cota = 0, indice_acao = 0, continuar_venda = 1, quantidade_cotas = 0, acao_vendida = 0;
+    bool acao_valida = 0;
+    
+    while (continuar_venda != 0){
+        while (acao_valida == 0){
+	    mostrar_mercado (acoes_disponiveis);
+            cout << endl << "Digite o nome da ação que quer vender: ";
+            cin >> acao_a_vender;
+            cout << endl;
+            indice_acao = buscar_dados_acao (acoes_disponiveis, acao_a_vender);
+            if (indice_acao != -1){
+                acao_valida = 1;
+            }
+        }
+        acao_valida = 0;
+        acao_vendida = indice_acao;
+        
+        if (acoes_carteira.size() == 0){
+            cout << "Você não possui nenhuma ação na carteira. Encerrando a venda." << endl;
+            break;
+        }    
+        
+        indice_acao = busca_binaria_para_acao_carteira (acao_a_vender, acoes_carteira);
+        
+        if (indice_acao == -1){
+            cout << "Você está tentando vender uma cotas de uma ação que não possui. Encerrando a venda." << endl;
+            break;
+        } else {
+            quantidade_cotas = acoes_carteira [indice_acao].quantidade;
+            
+            cout << "Você possui " << quantidade_cotas << " cotas da ação " << acoes_carteira[indice_acao].nome_acao << endl;
+            
+            while (acao_valida == 0){
+                cout << "Quantas cotas quer vender? ";
+                cin >> numero_cotas;
+                cout << endl;
+                if (numero_cotas <= quantidade_cotas && numero_cotas >= 0){
+                    acao_valida = 1;
+                } else {
+    		        cout << "Insira um número válido. Você não pode vender mais do que possui ou um número negativo." << endl;
+    	        }
+            }
+            acao_valida = 0;
+            
+            acoes_carteira [indice_acao].quantidade -= numero_cotas;
+            acoes_carteira [indice_acao].patrimonio -= numero_cotas * acoes_disponiveis [acao_vendida].cotacao_atual;
+            
+            cout << "Quer continuar vendendo? Digite '0' para encerrar." << endl;
+            cin >> continuar_venda;
+            cout << endl;     
+        }
+    }
+}
+
+void imposto_a_ser_pago (vector <CarteiraCliente> acoes_carteira){
+    int tamanho = 0, *vetor_balancos = NULL, i = 0, total = 0;
+    float imposto = 0;
+    bool erro = 0;
+    
+    if (acoes_carteira.size() == 0){
+        cout << "A carteira está vazia. Não há imposto a calcular." << endl;
+    } else {
+        tamanho = acoes_carteira.size();
+        
+        if(!(vetor_balancos = new (nothrow) int [tamanho])){
+            cout << "Erro na alocação de memória!" << endl;
+            erro = 1;
+        };
+        
+        if (erro == 0){
+            for (i = 0; i < tamanho; i++){
+                vetor_balancos [i] = acoes_carteira [i].balanco_da_acao;
+                total = total + vetor_balancos [i]; 
+            }
+            
+            if (total > 0){
+                imposto = total * 0.15;
+                cout << "Você deve pagar " << imposto << " de imposto para a Receita." << endl;               
+            } else if (total == 0){
+                cout << "Você nem lucrou nem teve prejuízo. Não há imposto a ser pago." << endl;
+            } else {
+                cout << "Não há imposto sobre prejuízo. Mas é importante declara tal evento para a Receita a fim de ter compensações futuras." << endl;
+            }
+        }
+    }
+    delete [] vetor_balancos;
+    vetor_balancos = NULL;
+}
+
+void variacao_mercado (vector<MercadoAcoes> &acoes_a_variar){
+    int intensidade_flutuacao = 0, i = 0;
+    bool flutuacao = 0;
+    
+    srand(time(NULL));
+    intensidade_flutuacao = rand () % 10;
+    flutuacao = rand () % 2;
+    
+    if (flutuacao == 0){
+        cout << "O mercado está em ascensão!" << endl << endl;
+        for (i = 0; i < acoes_a_variar.size(); i++){
+            acoes_a_variar[i].cotacao_atual += intensidade_flutuacao;
+        }
+    } else {
+        cout << "O mercado está em queda!" << endl << endl;
+        for (i = 0; i < acoes_a_variar.size(); i++){
+            acoes_a_variar[i].cotacao_atual -= intensidade_flutuacao;
+        }
+    }
+}
+
+void calculo_balanco (vector<MercadoAcoes> acoes_do_mercado, vector <CarteiraCliente> &acoes_carteira){
+    int tamanho = 0, acao_a_procurar = 0, patrimonio_novo = 0, i = 0;
+    
+    tamanho = acoes_carteira.size();
+    if (tamanho > 0){
+        for (i = 0; i < tamanho; i++){
+            while (acoes_carteira [i].nome_acao != acoes_do_mercado [acao_a_procurar].nome_acao){
+                acao_a_procurar++;
+            }
+            patrimonio_novo = acoes_do_mercado [acao_a_procurar].cotacao_atual * acoes_carteira [i].quantidade;
+            acoes_carteira [i].balanco_da_acao += (patrimonio_novo - acoes_carteira [i].patrimonio); 
+            acoes_carteira [i].patrimonio = patrimonio_novo;
+            acao_a_procurar = 0;
+        }
+    }
+    
+}
+
+void casos_teste (){
+    assert (buscar_dados_acao ({{"PETR4", "Petrobras", 30}}, "PETR4") == 0);
+    assert (buscar_dados_acao ({{"PETR4", "Petrobras", 30}}, "BBAS3") == -1);
+    assert (buscar_dados_acao ({{"PETR4", "Petrobras", 30}, {"CYRE3", "Cyrela", 33}}, "CYRE3") == 1);
+    cout << "Os teste de unidade foram bem-sucedidos!" << endl;
+}
+
+void teste_tempo_execucao_ordenacao (vector <string> &vetor_a_ordenar) {
+    auto inicio = chrono::high_resolution_clock::now();
+    ordenar_vetor_nomes_selection (vetor_a_ordenar);
+    auto fim = chrono::high_resolution_clock::now();
+    auto duracao = chrono::duration_cast<chrono::microseconds> (fim - inicio);
+    
+    cout << "A duração do módulo foi de: " << duracao.count() << " microsegundos." << endl;
+}
